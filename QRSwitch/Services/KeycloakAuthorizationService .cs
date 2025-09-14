@@ -1,4 +1,5 @@
-﻿using QRSwitch.Models;
+﻿using QRSwitch.Models.Authorization;
+using QRSwitch.Models.Shared;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +10,6 @@ namespace QRSwitch.Services
     {
         public KeycloakAuthorizationService(HttpClient httpClient, IConfiguration config)
             : base(httpClient, config) { }
-
         private async Task<HttpResponseMessage> SendAuthorizedRequest(HttpMethod method, string url, object? payload = null)
         {
             var token = await GetAdminTokenAsync();
@@ -21,19 +21,15 @@ namespace QRSwitch.Services
 
             if (payload != null)
             {
-                //request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 request.Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json");
 
             }
 
             return await _httpClient.SendAsync(request);
         }
-
-        // Create Scope
         public async Task<KeycloakResult> CreateScopeAsync(string realm, string clientIdFromUi, CreateScopeRequest req)
         {
             var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
-
             var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientUuid}/authz/resource-server/scope";
             var response = await SendAuthorizedRequest(HttpMethod.Post, url, req);
             var body = await response.Content.ReadAsStringAsync();
@@ -46,9 +42,6 @@ namespace QRSwitch.Services
                 ErrorMessage = response.IsSuccessStatusCode ? null : body
             };
         }
-
-
-        // Create Resource
         public async Task<KeycloakResult> CreateResourceAsync(string realm, string clientIdFromUi, CreateResourceRequest req)
         {
             var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
@@ -72,20 +65,16 @@ namespace QRSwitch.Services
                 ErrorMessage = response.IsSuccessStatusCode ? null : body
             };
         }
-
-
-        // Create Policy
         public async Task<KeycloakResult> CreatePolicyAsync(string realm, string clientIdFromUi, CreatePolicyRequest req)
         {
             var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
 
             var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientUuid}/authz/resource-server/policy/role";
 
-            // لازم تحول أسماء الـ roles لـ Ids من Keycloak
             var roleObjects = new List<object>();
             foreach (var roleName in req.Roles)
             {
-                var roleId = await GetRoleIdAsync(realm, roleName); // هتعمل method تجيب الـ role id
+                var roleId = await GetRoleIdAsync(realm, roleName); 
                 if (roleId != null)
                 {
                     roleObjects.Add(new { id = roleId, required = false });
@@ -112,9 +101,6 @@ namespace QRSwitch.Services
                 ErrorMessage = response.IsSuccessStatusCode ? null : body
             };
         }
-
-
-        // Create Permission
         public async Task<KeycloakResult> CreatePermissionAsync(string realm, string clientIdFromUi, CreatePermissionRequest req)
         {
             var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
@@ -139,7 +125,6 @@ namespace QRSwitch.Services
                 ErrorMessage = response.IsSuccessStatusCode ? null : body
             };
         }
-
         private async Task<string> GetClientUuidAsync(string realm, string clientIdFromUi)
         {
             var token = await GetAdminTokenAsync();
@@ -161,7 +146,6 @@ namespace QRSwitch.Services
 
             return clients[0].GetProperty("id").GetString()!;
         }
-
         private async Task<string?> GetRoleIdAsync(string realm, string roleName)
         {
             var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/roles/{roleName}";

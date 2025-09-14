@@ -1,6 +1,6 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace QRSwitch.Models
+namespace QRSwitch.Models.Auth
 {
     public class KeycloakTokenResponse
     {

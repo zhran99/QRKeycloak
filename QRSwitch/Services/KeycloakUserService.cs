@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using QRSwitch.Models;
+using QRSwitch.Models.Shared;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -77,8 +78,6 @@ namespace QRSwitch.Services
                 };
             }
         }
-
-   
         public async Task<KeycloakResult> UpdateUserAsync(string realm, string userId, string? email = null, string? firstName = null, string? lastName = null, bool? enabled = null)
         {
             var token = await GetAdminTokenAsync();
@@ -123,7 +122,6 @@ namespace QRSwitch.Services
                 };
             }
         }
-
         public async Task<KeycloakResult> DeleteUserAsync(string realm, string userId)
         {
             var token = await GetAdminTokenAsync();
@@ -161,8 +159,6 @@ namespace QRSwitch.Services
                 };
             }
         }
-
-      
         public async Task<KeycloakResult> GetAllUsersAsync(string realm, int first = 0, int max = 100)
         {
             var token = await GetAdminTokenAsync();
@@ -200,7 +196,6 @@ namespace QRSwitch.Services
                 };
             }
         }
-
         public async Task<KeycloakResult> GetUserByUsernameAsync(string realm, string username)
         {
             var token = await GetAdminTokenAsync();
@@ -238,7 +233,6 @@ namespace QRSwitch.Services
                 };
             }
         }
-
         public async Task<KeycloakResult> ResetUserPasswordAsync(string realm, string userId, string newPassword)
         {
             var token = await GetAdminTokenAsync();

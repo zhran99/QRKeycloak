@@ -7,13 +7,13 @@ public class PermissionAttribute : AuthorizeAttribute
     public PermissionAttribute(string permissionName)
     {
         PermissionName = permissionName;
-        Policy = "Permission"; // نفس policy اللي فوق
+        Policy = "Permission"; 
     }
 }
 
 public class PermissionRequirement : IAuthorizationRequirement
 {
-    // ممكن تضيف أي properties لو احتجت
+   
 }
 
 public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
@@ -24,7 +24,6 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
     {
         if (context.Resource is HttpContext httpContext)
         {
-            // خذ اسم الـ permission المطلوب من Endpoint attribute
             var endpoint = httpContext.GetEndpoint();
             var requiredPermission = endpoint?.Metadata
                 .GetMetadata<PermissionAttribute>()?.PermissionName;

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using QRSwitch.Models;
+using QRSwitch.Models.Authorization;
 using QRSwitch.Services;
 
 namespace QRSwitch.Controllers
@@ -22,7 +22,7 @@ namespace QRSwitch.Controllers
         public async Task<IActionResult> CreateScope([FromBody] CreateScopeRequest req)
         {
             var realm = _config["Keycloak:Realm"];
-            var clientIdFromUi = _config["Keycloak:ClientId"]; // ده الاسم في UI
+            var clientIdFromUi = _config["Keycloak:ClientId"]; // Name In  UI
             var result = await _authzService.CreateScopeAsync(realm, clientIdFromUi, req);
             return result.Success ? Ok(result.RawResponse) : BadRequest(result.ErrorMessage);
         }

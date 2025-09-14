@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using QRSwitch.Models;
 using QRSwitch.Models.Users;
+using QRSwitch.Models.Responses;
 using QRSwitch.Services;
+using System.Text.Json;
 
 namespace QRSwitch.Controllers
 {
     [ApiController]
-    [Route("api/users")]
+    [Route("api")]
     public class UsersController : ControllerBase
     {
         private readonly KeycloakUserService _userService;
@@ -19,7 +21,7 @@ namespace QRSwitch.Controllers
             _config = config;
         }
        
-        [HttpPost("create")]
+        [HttpPost("CreateUser")]
         //[Permission("CreateUser")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
         {
@@ -43,7 +45,7 @@ namespace QRSwitch.Controllers
         }
 
      
-        [HttpPut("update/{userId}")]
+        [HttpPut("UpdateUser/{userId}")]
         //[Permission("UpdateUser")]
         public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserRequest request)
         {
@@ -67,7 +69,7 @@ namespace QRSwitch.Controllers
                 });
         }
 
-        [HttpDelete("delete/{userId}")]
+        [HttpDelete("DeleteUser/{userId}")]
         //[Permission("DeleteUser")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
@@ -91,7 +93,7 @@ namespace QRSwitch.Controllers
         }
 
        
-        [HttpGet("all")]
+        [HttpGet("GetAllUsers")]
         //[Permission("GetAllUsers")]
         public async Task<IActionResult> GetAllUsers([FromQuery] int page = 0, [FromQuery] int size = 20)
         {
@@ -100,22 +102,46 @@ namespace QRSwitch.Controllers
             
             var result = await _userService.GetAllUsersAsync(realm, first, size);
 
-            return result.Success
-                ? Ok(new
+            var response = new GetAllUsersResponse
+            {
+                Success = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                StatusCode = (int)result.StatusCode,
+                Pagination = new PaginationDto
                 {
-                    success = true,
-                    data = result.RawResponse,
-                    pagination = new { page, size, first }
-                })
-                : BadRequest(new
+                    Page = page,
+                    Size = size,
+                    First = first
+                }
+            };
+
+            if (result.Success && !string.IsNullOrEmpty(result.RawResponse))
+            {
+                try
                 {
-                    success = false,
-                    error = result.ErrorMessage,
-                    status = result.StatusCode
-                });
+                    // Debug: Log the raw response
+                    Console.WriteLine($"Raw Response: {result.RawResponse}");
+                    
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var users = JsonSerializer.Deserialize<List<UserDto>>(result.RawResponse, options);
+                    response.Data = users ?? new List<UserDto>();
+                }
+                catch (JsonException ex)
+                {
+                    response.Success = false;
+                    response.ErrorMessage = $"Failed to parse user data: {ex.Message}. Raw response: {result.RawResponse}";
+                    response.StatusCode = 500;
+                }
+            }
+
+            return response.Success ? Ok(response) : BadRequest(response);
         }
         
-        [HttpGet("by-username/{username}")]
+        [HttpGet("GetUserByUsername/{username}")]
         //[Permission("GetUserByUsername")]
         public async Task<IActionResult> GetUserByUsername(string username)
         {
@@ -123,18 +149,34 @@ namespace QRSwitch.Controllers
             
             var result = await _userService.GetUserByUsernameAsync(realm, username);
 
-            return result.Success
-                ? Ok(new
+            var response = new GetUserByUsernameResponse
+            {
+                Success = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                StatusCode = (int)result.StatusCode
+            };
+
+            if (result.Success && !string.IsNullOrEmpty(result.RawResponse))
+            {
+                try
                 {
-                    success = true,
-                    data = result.RawResponse
-                })
-                : BadRequest(new
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var users = JsonSerializer.Deserialize<List<UserDto>>(result.RawResponse, options);
+                    response.Data = users?.FirstOrDefault();
+                }
+                catch (JsonException ex)
                 {
-                    success = false,
-                    error = result.ErrorMessage,
-                    status = result.StatusCode
-                });
+                    response.Success = false;
+                    response.ErrorMessage = $"Failed to parse user data: {ex.Message}";
+                    response.StatusCode = 500;
+                }
+            }
+
+            return response.Success ? Ok(response) : BadRequest(response);
         }
        
         [HttpPost("reset-password/{userId}")]

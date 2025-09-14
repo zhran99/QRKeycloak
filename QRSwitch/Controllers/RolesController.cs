@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QRSwitch.Models;
 using QRSwitch.Models.Roles;
+using QRSwitch.Models.Responses;
 using QRSwitch.Services;
+using System.Text.Json;
 using static QRSwitch.Services.KeycloakRoleService;
 
 namespace QRSwitch.Controllers
@@ -97,18 +99,34 @@ namespace QRSwitch.Controllers
             
             var result = await _roleService.GetAllRolesAsync(realm);
 
-            return result.Success
-                ? Ok(new
+            var response = new GetAllRolesResponse
+            {
+                Success = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                StatusCode = (int)result.StatusCode
+            };
+
+            if (result.Success && !string.IsNullOrEmpty(result.RawResponse))
+            {
+                try
                 {
-                    success = true,
-                    data = result.RawResponse
-                })
-                : BadRequest(new
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var roles = JsonSerializer.Deserialize<List<RoleDto>>(result.RawResponse, options);
+                    response.Data = roles ?? new List<RoleDto>();
+                }
+                catch (JsonException ex)
                 {
-                    success = false,
-                    error = result.ErrorMessage,
-                    status = result.StatusCode
-                });
+                    response.Success = false;
+                    response.ErrorMessage = $"Failed to parse role data: {ex.Message}";
+                    response.StatusCode = 500;
+                }
+            }
+
+            return response.Success ? Ok(response) : BadRequest(response);
         }
 
         [HttpGet("user/{username}")]
@@ -119,19 +137,38 @@ namespace QRSwitch.Controllers
             
             var result = await _roleService.GetRolesForUserByUsernameAsync(realm, username);
 
-            return result.Success
-                ? Ok(new
+            var response = new GetRolesForUserResponse
+            {
+                Success = result.Success,
+                Username = username,
+                ErrorMessage = result.ErrorMessage,
+                StatusCode = (int)result.StatusCode
+            };
+
+            if (result.Success && !string.IsNullOrEmpty(result.RawResponse))
+            {
+                try
                 {
-                    success = true,
-                    username = username,
-                    roles = result.RawResponse
-                })
-                : BadRequest(new
+                    // Debug: Log the raw response
+                    Console.WriteLine($"Raw Response: {result.RawResponse}");
+                    
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var roles = JsonSerializer.Deserialize<List<RoleDto>>(result.RawResponse, options);
+                    response.Roles = roles ?? new List<RoleDto>();
+                }
+                catch (JsonException ex)
                 {
-                    success = false,
-                    error = result.ErrorMessage,
-                    status = result.StatusCode
-                });
+                    response.Success = false;
+                    response.ErrorMessage = $"Failed to parse role data: {ex.Message}. Raw response: {result.RawResponse}";
+                    response.StatusCode = 500;
+                }
+            }
+
+            return response.Success ? Ok(response) : BadRequest(response);
         }
 
         [HttpPost("assign")]

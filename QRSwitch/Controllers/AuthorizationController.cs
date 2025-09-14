@@ -31,8 +31,8 @@ namespace QRSwitch.Controllers
         public async Task<IActionResult> CreateResource([FromBody] CreateResourceRequest req)
         {
             var realm = _config["Keycloak:Realm"];
-            var clientId = _config["Keycloak:ClientUuid"];
-            var result = await _authzService.CreateResourceAsync(realm, clientId, req);
+            var clientIdFromUi = _config["Keycloak:ClientId"];
+            var result = await _authzService.CreateResourceAsync(realm, clientIdFromUi, req);
             return result.Success ? Ok(result.RawResponse) : BadRequest(result.ErrorMessage);
         }
 
@@ -40,17 +40,18 @@ namespace QRSwitch.Controllers
         public async Task<IActionResult> CreatePolicy([FromBody] CreatePolicyRequest req)
         {
             var realm = _config["Keycloak:Realm"];
-            var clientId = _config["Keycloak:ClientUuid"];
-            var result = await _authzService.CreatePolicyAsync(realm, clientId, req);
+            var clientIdFromUi = _config["Keycloak:ClientId"];
+            var result = await _authzService.CreatePolicyAsync(realm, clientIdFromUi, req);
             return result.Success ? Ok(result.RawResponse) : BadRequest(result.ErrorMessage);
         }
 
         [HttpPost("permission")]
         public async Task<IActionResult> CreatePermission([FromBody] CreatePermissionRequest req)
         {
+
             var realm = _config["Keycloak:Realm"];
-            var clientId = _config["Keycloak:ClientUuid"];
-            var result = await _authzService.CreatePermissionAsync(realm, clientId, req);
+            var clientIdFromUi = _config["Keycloak:ClientId"];
+            var result = await _authzService.CreatePermissionAsync(realm, clientIdFromUi, req);
             return result.Success ? Ok(result.RawResponse) : BadRequest(result.ErrorMessage);
         }
     }

@@ -49,9 +49,18 @@ namespace QRSwitch.Services
 
 
         // Create Resource
-        public async Task<KeycloakResult> CreateResourceAsync(string realm, string clientId, CreateResourceRequest req)
+        public async Task<KeycloakResult> CreateResourceAsync(string realm, string clientIdFromUi, CreateResourceRequest req)
         {
-            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientId}/authz/resource-server/resource";
+            var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
+
+            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientUuid}/authz/resource-server/resource";
+            var payload = new
+            {
+                name = req.Name,
+                displayName = req.DisplayName,
+                type = req.Type,
+                scopes = req.Scopes?.Select(s => new { name = s }).ToList()
+            };
             var response = await SendAuthorizedRequest(HttpMethod.Post, url, req);
             var body = await response.Content.ReadAsStringAsync();
 
@@ -64,15 +73,32 @@ namespace QRSwitch.Services
             };
         }
 
+
         // Create Policy
-        public async Task<KeycloakResult> CreatePolicyAsync(string realm, string clientId, CreatePolicyRequest req)
+        public async Task<KeycloakResult> CreatePolicyAsync(string realm, string clientIdFromUi, CreatePolicyRequest req)
         {
-            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientId}/authz/resource-server/policy/role";
+            var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
+
+            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientUuid}/authz/resource-server/policy/role";
+
+            // لازم تحول أسماء الـ roles لـ Ids من Keycloak
+            var roleObjects = new List<object>();
+            foreach (var roleName in req.Roles)
+            {
+                var roleId = await GetRoleIdAsync(realm, roleName); // هتعمل method تجيب الـ role id
+                if (roleId != null)
+                {
+                    roleObjects.Add(new { id = roleId, required = false });
+                }
+            }
+
             var payload = new
             {
                 name = req.Name,
-                type = "role",
-                roles = req.Roles.Select(r => new { id = (string?)null, role = r })
+                type = req.Type.ToLowerInvariant(),
+                logic = "POSITIVE",
+                decisionStrategy = "UNANIMOUS",
+                roles = roleObjects
             };
 
             var response = await SendAuthorizedRequest(HttpMethod.Post, url, payload);
@@ -87,10 +113,13 @@ namespace QRSwitch.Services
             };
         }
 
+
         // Create Permission
-        public async Task<KeycloakResult> CreatePermissionAsync(string realm, string clientId, CreatePermissionRequest req)
+        public async Task<KeycloakResult> CreatePermissionAsync(string realm, string clientIdFromUi, CreatePermissionRequest req)
         {
-            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientId}/authz/resource-server/permission/scope";
+            var clientUuid = await GetClientUuidAsync(realm, clientIdFromUi);
+
+            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/clients/{clientUuid}/authz/resource-server/permission/scope";
             var payload = new
             {
                 name = req.Name,
@@ -133,7 +162,18 @@ namespace QRSwitch.Services
             return clients[0].GetProperty("id").GetString()!;
         }
 
+        private async Task<string?> GetRoleIdAsync(string realm, string roleName)
+        {
+            var url = $"{GetKeycloakBaseUrl()}/admin/realms/{realm}/roles/{roleName}";
+            var response = await SendAuthorizedRequest(HttpMethod.Get, url);
 
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var body = await response.Content.ReadAsStringAsync();
+            var roleObj = JsonSerializer.Deserialize<JsonElement>(body);
+            return roleObj.GetProperty("id").GetString();
+        }
     }
 
 

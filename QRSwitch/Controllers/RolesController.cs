@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QRSwitch.Models;
 using QRSwitch.Models.Roles;
+using QRSwitch.Models.Responses;
 using QRSwitch.Services;
+using System.Text.Json;
 using static QRSwitch.Services.KeycloakRoleService;
 
 namespace QRSwitch.Controllers
@@ -24,8 +26,8 @@ namespace QRSwitch.Controllers
         //[Permission("CreateRole")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
-            var realm = _config["Keycloak:Realm"] ;
-            
+            var realm = _config["Keycloak:Realm"];
+
             var result = await _roleService.CreateRoleAsync(realm, request.RoleName, request.Description);
 
             return result.Success
@@ -42,13 +44,13 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-      
+
         [HttpPut("update/{roleName}")]
         //[Permission("UpdateRole")]
         public async Task<IActionResult> UpdateRole(string roleName, [FromBody] UpdateRoleRequest request)
         {
-            var realm = _config["Keycloak:Realm"] ;
-            
+            var realm = _config["Keycloak:Realm"];
+
             var result = await _roleService.UpdateRoleAsync(realm, roleName, request.Description);
 
             return result.Success
@@ -65,13 +67,13 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-       
+
         [HttpDelete("delete/{roleName}")]
         //[Permission("DeleteRole")]
         public async Task<IActionResult> DeleteRole(string roleName)
         {
-            var realm = _config["Keycloak:Realm"] ;
-            
+            var realm = _config["Keycloak:Realm"];
+
             var result = await _roleService.DeleteRoleAsync(realm, roleName);
 
             return result.Success
@@ -88,58 +90,93 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-      
+
         [HttpGet("all")]
         //[Permission("CreateRole")]
         public async Task<IActionResult> GetAllRoles()
         {
-            var realm = _config["Keycloak:Realm"] ;
-            
+            var realm = _config["Keycloak:Realm"];
+
             var result = await _roleService.GetAllRolesAsync(realm);
 
-            return result.Success
-                ? Ok(new
+            var response = new GetAllRolesResponse
+            {
+                Success = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                StatusCode = (int)result.StatusCode
+            };
+
+            if (result.Success && !string.IsNullOrEmpty(result.RawResponse))
+            {
+                try
                 {
-                    success = true,
-                    data = result.RawResponse
-                })
-                : BadRequest(new
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var roles = JsonSerializer.Deserialize<List<RoleDto>>(result.RawResponse, options);
+                    response.Data = roles ?? new List<RoleDto>();
+                }
+                catch (JsonException ex)
                 {
-                    success = false,
-                    error = result.ErrorMessage,
-                    status = result.StatusCode
-                });
+                    response.Success = false;
+                    response.ErrorMessage = $"Failed to parse role data: {ex.Message}";
+                    response.StatusCode = 500;
+                }
+            }
+
+            return response.Success ? Ok(response) : BadRequest(response);
         }
 
         [HttpGet("user/{username}")]
         //[Permission("GetAllRoles")]
         public async Task<IActionResult> GetRolesForUser(string username)
         {
-            var realm = _config["Keycloak:Realm"] ;
-            
+            var realm = _config["Keycloak:Realm"];
+
             var result = await _roleService.GetRolesForUserByUsernameAsync(realm, username);
 
-            return result.Success
-                ? Ok(new
+            var response = new GetRolesForUserResponse
+            {
+                Success = result.Success,
+                Username = username,
+                ErrorMessage = result.ErrorMessage,
+                StatusCode = (int)result.StatusCode
+            };
+
+            if (result.Success && !string.IsNullOrEmpty(result.RawResponse))
+            {
+                try
                 {
-                    success = true,
-                    username = username,
-                    roles = result.RawResponse
-                })
-                : BadRequest(new
+                    // Debug: Log the raw response
+                    Console.WriteLine($"Raw Response: {result.RawResponse}");
+
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var roles = JsonSerializer.Deserialize<List<RoleDto>>(result.RawResponse, options);
+                    response.Roles = roles ?? new List<RoleDto>();
+                }
+                catch (JsonException ex)
                 {
-                    success = false,
-                    error = result.ErrorMessage,
-                    status = result.StatusCode
-                });
+                    response.Success = false;
+                    response.ErrorMessage = $"Failed to parse role data: {ex.Message}. Raw response: {result.RawResponse}";
+                    response.StatusCode = 500;
+                }
+            }
+
+            return response.Success ? Ok(response) : BadRequest(response);
         }
 
         [HttpPost("assign")]
         //[Permission("AssignRoleToUser")]
         public async Task<IActionResult> AssignRoleToUser([FromBody] AssignRoleRequest request)
         {
-            var realm = _config["Keycloak:Realm"] ;
-            
+            var realm = _config["Keycloak:Realm"];
+
             var result = await _roleService.AssignRoleToUserAsync(realm, request.UserId, request.RoleName);
 
             return result.Success
@@ -165,7 +202,7 @@ namespace QRSwitch.Controllers
             if (request.Roles == null || !request.Roles.Any())
                 return BadRequest("No roles provided");
 
-            var results = await _roleService.CreateRolesAsync(request.Roles,realm);
+            var results = await _roleService.CreateRolesAsync(request.Roles, realm);
             return Ok(results);
         }
 

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using QRSwitch.Models;
+using QRSwitch.Models.Auth;
 using System.Text.Json;
 
 namespace QRSwitch.Services
@@ -11,7 +12,6 @@ namespace QRSwitch.Services
         protected readonly IConfiguration _config;
         private string _adminToken = null!;
         private DateTime _tokenExpiry;
-
         public KeycloakBaseService(HttpClient httpClient, IConfiguration config)
         {
             _httpClient = httpClient;

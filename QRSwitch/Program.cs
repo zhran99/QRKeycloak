@@ -51,7 +51,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                                 var roleValue = role.GetString();
                                 if (!string.IsNullOrEmpty(roleValue))
                                 {
-                                    // مهم جدًا: استخدام ClaimTypes.Role
                                     identity.AddClaim(new Claim(ClaimTypes.Role, roleValue));
                                     Console.WriteLine($"Added Role: {roleValue}");
                                 }

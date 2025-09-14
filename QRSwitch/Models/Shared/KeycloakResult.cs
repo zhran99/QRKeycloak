@@ -1,6 +1,6 @@
-﻿using System.Net;
+using System.Net;
 
-namespace QRSwitch.Models
+namespace QRSwitch.Models.Shared
 {
     public class KeycloakResult
     {

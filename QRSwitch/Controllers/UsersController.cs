@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QRSwitch.Models;
+using QRSwitch.Models.Users;
 using QRSwitch.Services;
 
 namespace QRSwitch.Controllers
@@ -17,13 +18,9 @@ namespace QRSwitch.Controllers
             _userService = userService;
             _config = config;
         }
-
-        #region User CRUD Operations
-
        
         [HttpPost("create")]
-        [Permission("CreateUser")]
-
+        //[Permission("CreateUser")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
         {
             var result = await _userService.CreateUserAsync(
@@ -47,8 +44,7 @@ namespace QRSwitch.Controllers
 
      
         [HttpPut("update/{userId}")]
-        //[Authorize(Roles = "manager")]
-        [Permission("UpdateUser")]
+        //[Permission("UpdateUser")]
         public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserRequest request)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -72,7 +68,7 @@ namespace QRSwitch.Controllers
         }
 
         [HttpDelete("delete/{userId}")]
-        [Permission("DeleteUser")]
+        //[Permission("DeleteUser")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -96,7 +92,7 @@ namespace QRSwitch.Controllers
 
        
         [HttpGet("all")]
-        [Permission("GetAllUsers")]
+        //[Permission("GetAllUsers")]
         public async Task<IActionResult> GetAllUsers([FromQuery] int page = 0, [FromQuery] int size = 20)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -118,10 +114,9 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-
         
         [HttpGet("by-username/{username}")]
-        [Permission("GetUserByUsername")]
+        //[Permission("GetUserByUsername")]
         public async Task<IActionResult> GetUserByUsername(string username)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -141,10 +136,9 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-
        
         [HttpPost("reset-password/{userId}")]
-        [Permission("ResetPassword")]
+        //[Permission("ResetPassword")]
         public async Task<IActionResult> ResetPassword(string userId, [FromBody] ResetPasswordRequest request)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -166,6 +160,5 @@ namespace QRSwitch.Controllers
                 });
         }
 
-        #endregion
     }
 }

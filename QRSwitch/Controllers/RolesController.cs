@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QRSwitch.Models;
+using QRSwitch.Models.Roles;
 using QRSwitch.Services;
 using static QRSwitch.Services.KeycloakRoleService;
 
@@ -19,11 +20,8 @@ namespace QRSwitch.Controllers
             _config = config;
         }
 
-        #region Role CRUD Operations
-
         [HttpPost("create")]
-        [Permission("CreateRole")]
-        //[Authorize(Roles = "admin")]
+        //[Permission("CreateRole")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -44,12 +42,9 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-
       
         [HttpPut("update/{roleName}")]
-        //[Authorize(Policy = "UpdateRole")]
-        [Authorize(Roles = "admin")]
-
+        //[Permission("UpdateRole")]
         public async Task<IActionResult> UpdateRole(string roleName, [FromBody] UpdateRoleRequest request)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -70,11 +65,9 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-
        
         [HttpDelete("delete/{roleName}")]
-        //[Authorize(Policy = "DeleteRole")]
-        [Authorize(Roles = "admin")]
+        //[Permission("DeleteRole")]
         public async Task<IActionResult> DeleteRole(string roleName)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -95,12 +88,9 @@ namespace QRSwitch.Controllers
                     status = result.StatusCode
                 });
         }
-
       
         [HttpGet("all")]
-        //[Authorize(Policy = "ViewRoles")]
-        [Authorize(Roles = "admin")]
-
+        //[Permission("CreateRole")]
         public async Task<IActionResult> GetAllRoles()
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -121,13 +111,8 @@ namespace QRSwitch.Controllers
                 });
         }
 
-        #endregion
-
-        #region User-Role Assignment
-
-        
         [HttpGet("user/{username}")]
-        [Permission("ViewUserRoles")]
+        //[Permission("GetAllRoles")]
         public async Task<IActionResult> GetRolesForUser(string username)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -150,9 +135,7 @@ namespace QRSwitch.Controllers
         }
 
         [HttpPost("assign")]
-        //[Authorize(Policy = "AssignRole")]
-        [Authorize(Roles = "admin")]
-
+        //[Permission("AssignRoleToUser")]
         public async Task<IActionResult> AssignRoleToUser([FromBody] AssignRoleRequest request)
         {
             var realm = _config["Keycloak:Realm"] ;
@@ -175,6 +158,7 @@ namespace QRSwitch.Controllers
         }
 
         [HttpPost("create-multiple")]
+        //[Permission("CreateMultipleRoles")]
         public async Task<IActionResult> CreateMultipleRoles([FromBody] CreateRolesRequest request)
         {
             var realm = _config["Keycloak:Realm"];
@@ -184,43 +168,8 @@ namespace QRSwitch.Controllers
             var results = await _roleService.CreateRolesAsync(request.Roles,realm);
             return Ok(results);
         }
-        #endregion
-        #region MAnage Permessions and Roles
 
-        [HttpPost("create-resource")]
-        public async Task<IActionResult> CreateResource(string realm, string clientId)
-        {
-            var result = await _roleService.CreateResourceAsync(
-                realm,
-                clientId,
-                "User",
-                new List<string> { "create", "update", "delete" }
-            );
-            return Ok(result);
-        }
 
-        [HttpPost("create-policy")]
-        public async Task<IActionResult> CreatePolicy(string realm, string clientId, string policyName, string roleId)
-        {
-            var result = await _roleService.CreateRolePolicyAsync(realm, clientId, policyName, roleId);
-            return Ok(result);
-        }
 
-        [HttpPost("create-permission")]
-        public async Task<IActionResult> CreatePermission(string realm, string clientId, string permissionName, string resourceName, [FromBody] PermissionRequest request)
-        {
-            var result = await _roleService.CreatePermissionAsync(realm, clientId, permissionName, resourceName, request.Scopes, request.Policies);
-            return Ok(result);
-        }
-
-        public class PermissionRequest
-        {
-            public List<string> Scopes { get; set; }
-            public List<string> Policies { get; set; }
-        }
-
-        #endregion
-
-        
     }
 }

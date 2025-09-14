@@ -106,9 +106,9 @@ namespace QRSwitch.Models
     }
 
     public class CreatePolicyRequest
-    {
+    {               
         public string Name { get; set; } = null!;
-        public string Type { get; set; } = "role"; // default role policy
+        public string Type { get; set; } = "role";
         public List<string> Roles { get; set; } = new();
     }
 
